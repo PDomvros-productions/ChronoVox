@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>ChronoVox</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+        :root {
+            --primary-bg: #0d2137; 
+            --secondary-bg: #1a3a5f; 
+            --accent-colour: #ffd700; 
+            --accent-colour-light: #f0e68c; 
+            --text-primary: #f0f0f0; 
+            --text-secondary: #b0c4de; 
+            --record-colour: #ff6347; 
+        }
+
+        /* --- CSS Reset for Mobile Consistency --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        /* --- End Reset --- */
+
+        html { height: 100%; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--primary-bg);
+            color: var(--text-primary);
+            height: 100%; width: 100%;
+            overflow: hidden;
+        }
+
+        .app-container {
+            width: 100%; height: 100%;
+            background-color: var(--secondary-bg);
+            overflow: hidden; position: relative;
+            display: flex; flex-direction: column;
+        }
+
+        .centered-logo {
+            width: 80px; height: 80px;
+            border-radius: 50%; object-fit: cover;
+            border: 2px solid var(--accent-colour);
+            margin-bottom: 20px; flex-shrink: 0;
+            box-shadow: 0 0 15px rgba(0,0,0,0.4);
+        }
+
+        .screen {
+            padding: 20px; box-sizing: border-box;
+            display: none; flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex-grow: 1;
+            overflow: hidden; 
+            text-align: center;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .screen.active { display: flex; }
+        
+        .results-page {
+            display: none; width: 100%;
+            flex-direction: column; align-items: center;
+            justify-content: center; 
+            flex-grow: 1;
+            overflow-y: auto; 
+            -webkit-overflow-scrolling: touch;
+            padding: 10px;
+        }
+        .results-page.active { display: flex; }
+        
+        h1 { font-weight: 900; font-size: clamp(1.8em, 8vw, 2.5em); color: var(--accent-colour); margin-bottom: 10px; }
+        h2 { font-weight: 700; font-size: clamp(1.4em, 6vw, 1.9em); margin-bottom: 15px; }
+        h3 { font-weight: 700; color: var(--accent-colour); padding-top: 15px; margin-top: 15px; font-size: clamp(1.1em, 5vw, 1.3em); }
+        p { color: var(--text-secondary); font-size: clamp(0.9em, 4vw, 1em); line-height: 1.7; max-width: 95%; margin-top: 10px; }
+        .archetype-subtitle { font-size: clamp(1em, 4.5vw, 1.1em); color: var(--accent-colour-light); font-style: italic; margin-top: -10px; margin-bottom: 20px;}
+
+        .button {
+            background: var(--accent-colour);
+            color: var(--primary-bg); font-size: clamp(1em, 4.5vw, 1.1em); font-weight: 700;
+            padding: 15px 30px; border-radius: 50px; border: none;
+            cursor: pointer; margin-top: 20px; flex-shrink: 0;
+            min-width: 150px;
+        }
+        .button:hover { transform: scale(1.05); }
+
+        .gender-selection-container { display: flex; gap: 20px; }
+        .nav-button { background: transparent; border: 2px solid var(--accent-colour-light); color: var(--accent-colour-light); padding: 10px 25px; }
+        .nav-container { display: flex; justify-content: space-between; width: 90%; margin-top: auto; padding-top: 20px; flex-shrink: 0; }
+        
+        #prompt-box { border: 2px solid var(--accent-colour); border-radius: 15px; padding: 20px; margin: 20px 0; font-style: italic; font-size: clamp(1em, 4.5vw, 1.2em); line-height: 1.6;}
+        #record-button { width: 100px; height: 100px; border-radius: 50%; background-color: var(--record-colour); border: 5px solid #fff; cursor: pointer; margin-top: 20px; box-shadow: 0 0 20px rgba(255, 99, 71, 0.5); }
+        #record-button::before { content: '🎤'; font-size: 3em; line-height: 90px; }
+
+        #analysis-content, #recording-container { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; flex-grow: 1; }
+        #recording-container { display: none; }
+
+        #wave-visualizer { display: flex; justify-content: center; align-items: center; height: 60px; margin-top: 20px; }
+        .wave-bar {
+            width: 8px; height: 10px; margin: 0 4px;
+            background-color: var(--record-colour); border-radius: 4px;
+            animation: wave-pulse 1.2s infinite ease-in-out;
+        }
+        .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+        .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+        .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+        .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+
+        @keyframes wave-pulse { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(5); } }
+
+        #reveal-screen { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background-color: var(--secondary-bg); z-index: 10; }
+        #reveal-name { opacity: 0; transform: scale(0.8); animation: revealName 1.5s forwards ease-out; animation-delay: 0.5s; font-size: clamp(1.8em, 8vw, 2.5em);}
+        @keyframes revealName { to { opacity: 1; transform: scale(1); } }
+        
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div id="welcome-screen" class="screen active">
+            <img src="baroque.jpg" alt="Logo" class="centered-logo">
+            <h1>ChronoVox</h1>
+            <p>Επίλεξε το φύλο σου για να ξεκινήσει η ανάλυση.</p>
+            <div class="gender-selection-container">
+                <button id="male-btn" class="button">Άνδρας</button>
+                <button id="female-btn" class="button">Γυναίκα</button>
+            </div>
+        </div>
+
+        <div id="analysis-screen" class="screen">
+            <div id="analysis-content">
+                <img src="baroque.jpg" alt="Logo" class="centered-logo">
+                <p>Διάβασε την παρακάτω φράση δυνατά και με καθαρή φωνή:</p>
+                <div id="prompt-box"></div>
+                <p>Πάτησε το κουμπί για εγγραφή.</p>
+                <div id="record-button"></div>
+            </div>
+            <div id="recording-container">
+                <img src="baroque.jpg" alt="Logo" class="centered-logo">
+                <p id="recording-prompt-text" style="font-style: italic; color: var(--accent-colour-light)"></p>
+                <div id="wave-visualizer">
+                    <div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div><div class="wave-bar"></div>
+                </div>
+                <p class="loader-text" style="text-align: center; margin-top: 10px;">Ανάλυση φωνής σε εξέλιξη...</p>
+            </div>
+        </div>
+        
+        <div id="reveal-screen" class="screen">
+            <img src="baroque.jpg" alt="Logo" class="centered-logo">
+            <p>Η φωνή σου αντηχεί την ψυχή του/της...</p>
+            <h1 id="reveal-name" class="revealed-name"></h1>
+        </div>
+
+        <div id="results-screen" class="screen">
+            <div id="results-content" style="display: flex; flex-direction: column; align-items: center; flex-grow: 1; width: 100%; overflow: hidden;">
+                <div id="results-page-1" class="results-page">
+                    <img src="baroque.jpg" alt="Logo" class="centered-logo">
+                    <h2 id="result-title"></h2>
+                    <p id="archetype-subtitle" class="archetype-subtitle"></p>
+                    <h3>Χαρακτηριστικά</h3>
+                    <p id="result-characteristics"></p>
+                </div>
+                <div id="results-page-2" class="results-page">
+                    <img src="baroque.jpg" alt="Logo" class="centered-logo">
+                    <h3>Εστίαση Φωνητικής Ανάλυσης</h3>
+                    <p id="result-analysis-focus"></p>
+                </div>
+                <div id="results-page-3" class="results-page">
+                    <img src="baroque.jpg" alt="Logo" class="centered-logo">
+                    <h3>Σύντομο Βιογραφικό</h3>
+                    <p id="result-biography"></p>
+                </div>
+            </div>
+            <div class="nav-container">
+                <button id="back-btn" class="button nav-button" style="visibility: hidden;">Πίσω</button>
+                <button id="next-btn" class="button nav-button">Επόμενο</button>
+            </div>
+             <button id="restart-btn" class="button" style="display:none;">Ανάλυση Ξανά</button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const maleProfiles = [
+                { name: "Περικλής", archetype: "Ο Πολιτικός Ηγέτης", characteristics: "Διαθέτεις όραμα, στρατηγική σκέψη και απαράμιλλη ρητορική δεινότητα. Εμπνέεις τους γύρω σου όχι με φλογερά λόγια, αλλά με τη σταθερότητα, τη σοφία και την αφοσίωσή σου σε υψηλά ιδανικά.", analysisFocus: "Η ανάλυση εστιάζει στη σταθερότητα του τόνου και τη ρητορική καθαρότητα, που υποδηλώνουν οραματισμό και ηγετική ικανότητα.", biography: "Ηγέτης της Αθήνας κατά τον Χρυσό Αιώνα (5ος αι. π.Χ.). Η περίοδος της ηγεμονίας του έμεινε γνωστή για την προώθηση της δημοκρατίας, των τεχνών και των γραμμάτων. Υπό την καθοδήγησή του, ξεκίνησε το μεγαλόπνοο οικοδομικό πρόγραμμα της Ακρόπολης, με κορυφαίο έργο τον Παρθενώνα, που εδραίωσε την Αθήνα ως το πνευματικό κέντρο του αρχαίου κόσμου." },
+                { name: "Σωκράτης", archetype: "Ο Φιλόσοφος", characteristics: "Η μεγαλύτερή σου δύναμη είναι η αμφισβήτηση. Δεν δέχεσαι τίποτα ως δεδομένο και αναζητάς την αλήθεια μέσα από τον διάλογο. Έχεις μια ήρεμη δύναμη και την ταπεινότητα να γνωρίζεις ότι η πραγματική σοφία ξεκινά από την παραδοχή της άγνοιας.", analysisFocus: "Η ανάλυση εστιάζει στον ήρεμο, στοχαστικό ρυθμό της ομιλίας και τις παύσεις που υποδηλώνουν βαθιά σκέψη.", biography: "Κλασικός Έλληνας φιλόσοφος, θεωρείται ένας από τους θεμελιωτές της Δυτικής φιλοσοφίας. Δεν άφησε γραπτά έργα, αλλά η διδασκαλία του, γνωστή ως σωκρατική μέθοδος, βασιζόταν στον διάλογο και την αμφισβήτηση των βεβαιοτήτων. Καταδικάστηκε σε θάνατο το 399 π.Χ. με την κατηγορία της ασέβειας και της διαφθοράς των νέων." },
+                { name: "Μέγας Αλέξανδρος", archetype: "Ο Κατακτητής", characteristics: "Είσαι μια προσωπικότητα που ορίζεται από την ακατάβλητη φιλοδοξία και τη δίψα για το άγνωστο. Δεν βλέπεις όρια, μόνο ορίζοντες που πρέπει να κατακτηθούν. Ο δυναμισμός σου είναι μεταδοτικός και η τόλμη σου ικανή να οδηγήσει στρατούς στην άκρη του κόσμου.", analysisFocus: "Η ανάλυση εστιάζει στην ορμή, την καθαρότητα και την αποφασιστικότητα στον λόγο, χαρακτηριστικά μιας φωνής που δίνει διαταγές.", biography: "Βασιλιάς της Μακεδονίας (4ος αι. π.Χ.) και ένας από τους πιο επιτυχημένους στρατηλάτες της ιστορίας. Σε μια δεκαετία, κατέκτησε την Περσική Αυτοκρατορία, φτάνοντας μέχρι την Ινδία. Η εκστρατεία του δεν ήταν μόνο στρατιωτική, αλλά και πολιτιστική, οδηγώντας στη διάδοση του ελληνιστικού πολιτισμού και τη δημιουργία ενός νέου κόσμου." },
+                { name: "Θεόδωρος Κολοκοτρώνης", archetype: "Ο Στρατηγός", characteristics: "Διαθέτεις μια ψυχή αδάμαστη, πονηριά και πρακτική σοφία που γεννήθηκε μέσα από τις δυσκολίες. Ηγείσαι με το παράδειγμα και η φωνή σου έχει το βάρος της εμπειρίας και της αποφασιστικότητας. Η πίστη σου στον σκοπό είναι ακλόνητη.", analysisFocus: "Η ανάλυση εστιάζει στη βραχνάδα, το κύρος και τις απότομεες δυναμικές εναλλαγές της φωνής, που δείχνουν έναν άνθρωπο της δράσης.", biography: "Κορυφαία στρατιωτική μορφή της Ελληνικής Επανάστασης του 1821. Γνωστός ως 'Ο Γέρος του Μοριά', η στρατηγική του ιδιοφυΐα και η ηγετική του φυσιογνωμία ήταν καθοριστικές για την έκβαση του Αγώνα. Η νίκη του στη Μάχη των Δερβενακίων το 1822 θεωρείται μία από τις σημαντικότερες της επανάστασης." },
+                { name: "Ιωάννης Καποδίστριας", archetype: "Ο Κυβερνήτης", characteristics: "Είσαι ο αρχιτέκτονας του κράτους. Λειτουργείς με μεθοδικότητα, οργάνωση και μια βαθιά αίσθηση του καθήκοντος. Η προσέγγισή σου είναι διπλωματική αλλά και αυστηρή, καθώς προσπαθείς να θεμελιώσεις τη τάξη και την πρόοδο. Η ακεραιότητά σου είναι το μεγαλύτερό σου όπλο.", analysisFocus: "Η ανάλυση εστιάζει στη μετρημένη, καθαρή άρθρωση και τον σταθερό ρυθμό, που υποδηλώνουν διπλωματία και οργάνωση.", biography: "Διακεκριμένος Ευρωπαίος διπλωμάτης και ο πρώτος Κυβερνήτης της ανεξάρτητης Ελλάδας (1827-1831). Αφού υπηρέτησε ως Υπουργός Εξωτερικών της Ρωσικής Αυτοκρατορίας, ανέλαβε την οργάνωση του νεοσύστατου ελληνικού κράτους, θέτοντας τα θεμέλια στη διοίκηση, την παιδεία και την οικονομία. Δολοφονήθηκε το 1831 στο Ναύπλιο." },
+                { name: "Ελευθέριος Βενιζέλος", archetype: "Ο Διπλωμάτης", characteristics: "Είσαι ένας χαρισματικός και οξυδερκής πολιτικός νους. Συνδυάζεις τον ρεαλισμό με το τολμηρό όραμα και έχεις την ικανότητα να πείθεις φίλους και εχθρούς. Κινείσαι με ευελιξία στο διπλωματικό πεδίο, εκσυγχρονίζοντας και αλλάζοντας ριζικά τις δομές γύρω σου.", analysisFocus: "Η ανάλυση εστιάζει στην πειθώ, τις λεπτές αποχρώσεις του τόνου και την ταχύτητα της σκέψης που αποτυπώνεται στον λόγο.", biography: "Μία από τις σημαντικότερες πολιτικές φυσιογνωμίες της σύγχρονης Ελλάδας. Διετέλεσε επτά φορές πρωθυπουργός μεταξύ 1910 και 1933. Με τις πολιτικές του, η Ελλάδα διπλασίασε τα σύνορά της μέσω των Βαλκανικών Πολέμων και του Α' Παγκοσμίου Πολέμου, ενώ παράλληλα προχώρησε σε ριζικό εκσυγχρονισμό του κράτους και της κοινωνίας." },
+                { name: "Γεώργιος Παπανικολάου", archetype: "Ο Επιστήμονας", characteristics: "Η δύναμή σου έγκειται στην παρατήρηση, την υπομονή και την αφοσίωση στην έρευνα. Εργάζεσαι αθόρυβα και μεθοδικά, με στόχο να προσφέρεις στην ανθρωπότητα. Το έργο σου δεν αποσκοπεί στη δόξα, αλλά στη σωτηρία και τη βελτίωση της ανθρώπινης ζωής.", analysisFocus: "Η ανάλυση εστιάζει στην ακρίβεια, την καθαρότητα και την έλλειψη συναισθηματικών εξάρσεων, χαρακτηριστικά ενός μυαλού που εστιάζει στα δεδομένα.", biography: "Έλληνας ιατρός, πρωτοπόρος στην κυτταροπαθολογία και εφευρέτης του 'Τεστ Παπ'. Η μέθοδός του, που επιτρέπει την πρώιμη διάγνωση του καρκίνου του τραχήλου της μήτρας, έφερε επανάσταση στην ιατρική και έχει σώσει εκατομμύρια ζωές γυναικών παγκοσμίως. Το έργο του αποτελεί ορόσημο στην προληπτική ιατρική." },
+                { name: "Οδυσσέας Ελύτης", archetype: "Ο Ποιητής", characteristics: "Αντιλαμβάνεσαι τον κόσμο μέσα από το φως, το χρώμα και τη βαθύτερη ουσία των λέξεων. Η ψυχή σου είναι συνδεδεμένη με τη φύση, τον ήλιο και τη θάλασσα. Μετατρέπεις το καθημερινό σε μαγικό και το απλό σε σπουδαίο, αναζητώντας την ομορφιά και την αλήθεια.", analysisFocus: "Η ανάλυση εστιάζει στη μελωδικότητα, τον λυρισμό και τις ποιοτικές διακυμάνσεις της φωνής, που φανερώνουν καλλιτεχνική ευαισθησία.", biography: "Ένας από τους σημαντικότερους ποιητές της Γενιάς του '30, βραβευμένος με το Νόμπελ Λογοτεχνίας το 1979. Η ποίησή του, βαθιά επηρεασμένη από το Αιγαίο, τον ήλιο και την ελληνική παράδοση, συνδυάζει τον λυρισμό με τον σουρεαλισμό. Το μνημειώδες έργο του 'Άξιον Εστί' θεωρείται μία από τις κορυφές της νεοελληνικής λογοτεχνίας." },
+                { name: "Μίκης Θεοδωράκης", archetype: "Ο Συνθέτης", characteristics: "Είσαι μια ορμητική δύναμη της φύσης. Το πάθος, ο αγώνας και το μεγαλείο διαπερνούν την ύπαρξή σου. Μετατρέπεις τον πόνο σε τέχνη και την αντίσταση σε ύμνο. Η δημιουργικότητά σου είναι τεράστια και άρρηκτα συνδεδεμένη με την ψυχή του λαού.", analysisFocus: "Η ανάλυση εστιάζει στο ευρύ δυναμικό εύρος, από τον ψίθυρο στην κραυγή, και στη δραματική ένταση που εκφράζει πάθος και αγωνιστικότητα.", biography: "Παγκοσμίου φήμης συνθέτης και πολιτικός αγωνιστής, του οποίου η ζωή και το έργο συνδέθηκαν άρρηκτα με την ιστορία της σύγχρονης Ελλάδας. Το τεράστιο έργο του περιλαμβάνει συμφωνίες, όπερες, μουσική για ταινίες (όπως το 'Ζορμπάς ο Έλληνας') και μελοποιημένη ποίηση, εκφράζοντας τους κοινωνικούς και πολιτικούς αγώνες του λαού." },
+                { name: "Ιουστινιανός Α´", archetype: "Ο Νομοθέτης", characteristics: "Είσαι ένας φιλόδοξος ηγέτης με όραμα την αποκατάσταση της παλιάς δόξας και την επιβολή της τάξης. Η μεγαλύτερη κληρονομιά σου είναι η κωδικοποίηση των νόμων, ένα έργο που απαιτεί οξύνοια, οργάνωση και την επιθυμία να δημιουργήσεις ένα σύστημα που θα αντέξει στον χρόνο.", analysisFocus: "Η ανάλυση εστιάζει στον επιβλητικό, σταθερό και καλά δομημένο λόγο, που υποδηλώνει την επιβολή τάξης και νόμου.", biography: "Βυζαντινός Αυτοκράτορας (6ος αι. μ.Χ.) που ηγήθηκε μιας φιλόδοξης προσπάθειας ανακατάληψης των εδαφών της Δυτικής Ρωμαϊκής Αυτοκρατορίας. Το σπουδαιότερο και πιο διαχρονικό έργο του ήταν η κωδικοποίηση του Ρωμαϊκού Δικαίου, γνωστή ως Ιουστινιάνειος Κώδικας, που αποτέλεσε τη βάση της σύγχρονης ευρωπαϊκής νομοθεσίας." }
+            ];
+
+            const femaleProfiles = [
+                { name: "Σαπφώ", archetype: "Η Ποιήτρια", characteristics: "Η ψυχή σου εκφράζεται μέσα από τον στίχο και το λυρισμό. Βιώνεις το συναίσθημα με τεράστια ένταση και έχεις το σπάνιο χάρισμα να το μετουσιώνεις σε τέχνη. Η φωνή σου είναι προσωπική, αισθαντική και διαχρονικά μοντέρνα.", analysisFocus: "Η ανάλυση εστιάζει στη μουσικότητα, τη συναισθηματική χροιά και τις λεπτές αποχρώσεις της φωνής.", biography: "Αρχαία Ελληνίδα λυρική ποιήτρια από τη Λέσβο (περ. 630 π.Χ.), που θεωρείται μία από τις σπουδαιότερες του είδους της στην αρχαιότητα. Η ποίησή της, έντονα προσωπική και συναισθηματική, επικεντρωνόταν στον έρωτα, την ομορφιά και τις σχέσεις μεταξύ των γυναικών στον κύκλο της. Το έργο της επηρέασε βαθιά τη Δυτική λογοτεχνία." },
+                { name: "Ασπασία της Μιλήτου", archetype: "Η Διανοούμενη", characteristics: "Το μυαλό σου είναι το πιο ισχυρό σου όπλο. Κινείσαι με άνεση στους κύκλους της εξουσίας και της φιλοσοφίας, όχι ως απλή παρατηρήτρια, αλλά ως ισότιμη συνομιλήτρια. Η ευφυΐα και η ρητορική σου δεινότητα σε καθιστούν μια προσωπικότητα με τεράστια επιρροή.", analysisFocus: "Η ανάλυση εστιάζει στην καθαρότητα της άρθρωσης, την ταχύτητα της σκέψης και τη χρήση λογικών επιχειρημάτων στον λόγο.", biography: "Μία από τις πιο γνωστές γυναίκες της κλασικής Αθήνας (5ος αι. π.Χ.). Παρά την ιδιότητά της ως μετοίκου, η ευφυΐα, η μόρφωση και η ρητορική της δεινότητα την έκαναν σύντροφο του Περικλή και σημαντική μορφή στους φιλοσοφικούς και πολιτικούς κύκλους της πόλης, επηρεάζοντας πολλούς διανοητές της εποχής." },
+                { name: "Αντιγόνη", archetype: "Η Επαναστάτρια", characteristics: "Είσαι η ενσάρκωση του ηθικού θάρρους. Αψηφάς τους νόμους των ανθρώπων όταν αυτοί συγκρούονται με τον άγραφο, ηθικό νόμο της συνείδησής σου. Η στάση σου είναι αδιαπραγμάτευτη και είσαι έτοιμη να πληρώσεις το τίμημα για τις πεποιθήσεις σου.", analysisFocus: "Η ανάλυση εστιάζει στη σταθερότητα και την αποφασιστικότητα της φωνής, που δεν 'σπάει' υπό πίεση και εκφράζει ακλόνητη πεποίθηση.", biography: "Τραγική ηρωίδα, κόρη του Οιδίποδα, γνωστή από την ομώνυμη τραγωδία του Σοφοκλή. Έγινε το αιώνιο σύμβολο της σύγκρουσης μεταξύ του ηθικού-θρησκευτικού καθήκοντος και των νόμων της πολιτείας. Επέλεξε να θάψει τον αδερφό της Πολυνείκη παρά την αυστηρή απαγόρευση του βασιλιά Κρέοντα, πληρώνοντας την πράξη της με τη ζωή της." },
+                { name: "Αυτοκράτειρα Θεοδώρα", archetype: "Η Αυτοκράτειρα", characteristics: "Διαθέτεις ατσάλινη θέληση, οξυδέρκεια και πολιτικό ένστικτο. Από ταπεινή καταγωγή, έφτασες στην κορυφή της εξουσίας. Η φωνή σου έχει τη δύναμη να σταματήσει μια επανάσταση και να επηρεάσει τις αποφάσεις που διαμορφώνουν την αυτοκρατορία.", analysisFocus: "Η ανάλυση εστιάζει στον επιβλητικό και πειστικό τόνο, που μπορεί να κυμαίνεται από γοητευτικός έως ατσάλινος.", biography: "Βυζαντινή Αυτοκράτειρα και σύζυγος του Ιουστινιανού Α' (6ος αι. μ.Χ.). Από ταπεινή καταγωγή, ανήλθε στην εξουσία και θεωρείται μία από τις πιο ισχυρές και ευφυείς γυναίκες της εποχής της. Η αποφασιστική της στάση κατά τη Στάση του Νίκα το 532 μ.Χ. έσωσε τον θρόνο του συζύγου της και την αυτοκρατορία." },
+                { name: "Λασκαρίνα Μπουμπουλίνα", archetype: "Η Καπετάνισσα", characteristics: "Είσαι γυναίκα της δράσης, μια ηγετική μορφή που δεν φοβάται να πάρει τα όπλα και να μπει μπροστά στη μάχη. Το θάρρος σου είναι παροιμιώδες και η αποφασιστικότητά σου εμπνέει σεβασμό και αφοσίωση. Διοικείς πλοία και άνδρες με την ίδια πυγμή.", analysisFocus: "Η ανάλυση εστιάζει στην ένταση και την καθαρότητα της φωνής, μια φωνή φτιαγμένη για να δίνει διαταγές πάνω από τον θόρυβο της μάχης.", biography: "Ηρωίδα της Ελληνικής Επανάστασης του 1821. Ήταν εύπορη πλοιοκτήτρια από τις Σπέτσες που διέθεσε την περιουσία και τα πλοία της στον Αγώνα. Λαμβάνοντας η ίδια μέρος σε ναυμαχίες, επέδειξε απαράμιλλο θάρρος και ηγετικές ικανότητες. Θεωρείται η πρώτη γυναίκα ναύαρχος παγκοσμίως." },
+                { name: "Μαντώ Μαυρογένους", archetype: "Η Ευεργέτιδα", characteristics: "Η δύναμή σου δεν είναι στα όπλα, αλλά στην αφοσίωση και τη δυνατότητα να προσφέρεις. Θυσιάζεις την προσωπική σου περιουσία και χρησιμοποιείς την καλλιέργεια και τις γνωριμίες σου για τον κοινό σκοπό. Είσαι μια μορφή που συνδυάζει την αριστοκρατική χάρη με την επαναστατική ψυχή.", analysisFocus: "Η ανάλυση εστιάζει στην καλλιεργημένη και πειστική φύση του λόγου, που υποδηλώνει μόρφωση και πάθος.", biography: "Αριστοκράτισσα και ηρωίδα της Επανάστασης του 1821. Γεννημένη στην Τεργέστη, διέθεσε ολόκληρη την περιουσία της για τη χρηματοδότηση του Αγώνα και χρησιμοποίησε την ευρωπαϊκή της μόρφωση και τις γνωριμίες της για να προσελκύσει φιλέλληνες και να υποστηρίξει διπλωματικά την ελληνική υπόθεση." },
+                { name: "Μελίνα Μερκούρη", archetype: "Η Σταρ", characteristics: "Είσαι η ενσάρκωση του πάθους, της εξωστρέφειας και της αγάπης για τη ζωή. Διαθέτεις ένα εκρηκτικό ταμπεραμέντο και μια ακαταμάχητη γοητεία που σε κάνει να λάμπεις είτε στη σκηνή είτε στην πολιτική. Η φωνή σου είναι η φωνή της Ελλάδας, γεμάτη συναίσθημα.", analysisFocus: "Η ανάλυση εστιάζει στη χαρακτηριστική, βελούδινη βραχνάδα και τις δραματικές, συναισθηματικές εναλλαγές της φωνής.", biography: "Διεθνούς φήμης ηθοποιός, τραγουδίστρια και πολιτικός. Έγινε σύμβολο του αγώνα κατά της Χούντας των Συνταγματαρχών. Ως Υπουργός Πολιτισμού (1981-1989, 1993-1994), ξεκίνησε την εκστρατεία για την επιστροφή των Γλυπτών του Παρθενώνα και θέσπισε τον επιτυχημένο θεσμό της Πολιτιστικής Πρωτεύουσας της Ευρώπης." },
+                { name: "Μαρία Κάλλας", archetype: "Η Ντίβα", characteristics: "Η ζωή σου είναι αφιερωμένη στην τέχνη και την αναζήτηση της απόλυτης τελειότητας. Είσαι απαιτητική, πειθαρχημένη και διαθέτεις ένα ταλέντο που αγγίζει τα όρια του θείου. Η φωνή σου δεν είναι απλώς ένα όργανο, αλλά το μέσο για να εκφράσεις τα βαθύτερα ανθρώπινα συναισθήματα.", analysisFocus: "Η ανάλυση εστιάζει στο τεράστιο εύρος, τον άψογο έλεγχο και τη μοναδική δραματική ποιότητα της φωνής.", biography: "Ελληνοαμερικανίδα υψίφωνος, που θεωρείται από πολλούς η κορυφαία τραγουδίστρια της όπερας του 20ού αιώνα. Η μοναδική φωνητική και υποκριτική της τεχνική, σε συνδυασμό με την επιβλητική της σκηνική παρουσία, αναζωογόνησαν το ρεπερτόριο του bel canto και της χάρισαν το προσωνύμιο 'La Divina' (Η Θεϊκή)." },
+                { name: "Λέλα Καραγιάννη", archetype: "Η Αγωνίστρια", characteristics: "Σε καιρούς σκότους, γίνεσαι φάρος ελπίδας. Με απίστευτο θάρρος, εξυπνάδα και οργανωτικές ικανότητες, ηγείσαι της αντίστασης απέναντι στον κατακτητή. Η αγάπη σου για την πατρίδα είναι πάνω από τον φόβο του θανάτου.", analysisFocus: "Η ανάλυση εστιάζει στον σταθερό, καθαρό και θαρραλέο τόνο της φωνής, που δεν προδίδει φόβο.", biography: "Ηρωίδα της Εθνικής Αντίστασης κατά τη διάρκεια της γερμανικής κατοχής στην Ελλάδα. Ήταν αρχηγός της αντιστασιακής οργάνωσης 'Μπουμπουλίνα', η οποία οργάνωνε σαμποτάζ και φυγαδεύσεις συμμάχων στρατιωτών. Παρά τα βασανιστήρια, δεν πρόδωσε τους συντρόφους της και εκτελέστηκε από τους Γερμανούς το 1944." },
+                { name: "Υπατία της Αλεξανδρείας", archetype: "Η Ερευνήτρια του Λόγου", characteristics: "Είσαι ένα ατρόμητο πνεύμα, απόλυτα αφοσιωμένο στη γνώση, τα μαθηματικά και τη φιλοσοφία. Στέκεσαι ως φάρος λογικής σε έναν κόσμο που βυθίζεται στον φανατισμό. Δεν φοβάσαι να αμφισβητήσεις τα δόγματα και να διδάξεις την κριτική σκέψη.", analysisFocus: "Η ανάλυση εστιάζει στην καθαρότητα και την ακρίβεια της εκφοράς του λόγου, καθώς και στον ήρεμο, διδακτικό τόνο που υποδηλώνει ένα μυαλό που κυριαρχεί στη λογική.", biography: "Ελληνίδα νεοπλατωνική φιλόσοφος, μαθηματικός και αστρονόμος στην Αλεξάνδρεια της ύστερης αρχαιότητας (4ος-5ος αι. μ.Χ.). Ήταν διευθύντρια της Φιλοσοφικής Σχολής της Αλεξάνδρειας και μία από τις πρώτες γυναίκες που δίδαξαν μαθηματικά. Δολοφονήθηκε από έναν φανατισμένο όχλο, αποτελώντας σύμβολο της σύγκρουσης της λογικής με τον δογματισμό." }
+            ];
+
+            const prompts = ["Ἄνδρα μοι ἔννεπε, Μοῦσα, πολύτροπον.","Ἓν οἶδα ὅτι οὐδὲν οἶδα.","Πολλὰ τὰ δεινὰ κοὐδὲν ἀνθρώπου δεινότερον πέλει.","Ἔστιν θάλασσα, τίς δέ νιν κατασβέσει;","Χρόνος δίκαιον ἄνδρα δείκνυσιν μόνος.","Ψυχὴ πᾶσα ἀθάνατος.","Ὃς ἐπὶ τοῦ πλέονος ἐπιθυμίᾳ τὸ παρὸν ἀπολέσειεν.","Τὸ δὲ ζῆν οὐχ ἁπλῶς, ἀλλὰ τὸ εὖ ζῆν.","Πόλεμος πάντων μὲν πατήρ ἐστι.","Γνῶθι σαυτόν."];
+            
+            const screens = { welcome: document.getElementById('welcome-screen'), analysis: document.getElementById('analysis-screen'), reveal: document.getElementById('reveal-screen'), results: document.getElementById('results-screen') };
+            const elements = { maleBtn: document.getElementById('male-btn'), femaleBtn: document.getElementById('female-btn'), recordBtn: document.getElementById('record-button'), restartBtn: document.getElementById('restart-btn'), promptBox: document.getElementById('prompt-box'), analysisContent: document.getElementById('analysis-content'), recordingContainer: document.getElementById('recording-container'), recordingPromptText: document.getElementById('recording-prompt-text'), nextBtn: document.getElementById('next-btn'), backBtn: document.getElementById('back-btn') };
+
+            let selectedGender, currentProfile, currentResultPage;
+
+            function switchScreen(screenToShow) {
+                for (const screen in screens) { screens[screen].classList.remove('active'); }
+                screens[screenToShow].classList.add('active');
+            }
+
+            function startAnalysis() {
+                const promptText = prompts[Math.floor(Math.random() * prompts.length)];
+                elements.promptBox.innerText = promptText;
+                elements.recordingPromptText.innerText = `"${promptText}"`;
+                elements.analysisContent.style.display = 'flex';
+                elements.recordingContainer.style.display = 'none';
+                switchScreen('analysis');
+            }
+
+            function startReveal() {
+                const profilePool = selectedGender === 'male' ? maleProfiles : femaleProfiles;
+                currentProfile = profilePool[Math.floor(Math.random() * profilePool.length)];
+                document.getElementById('reveal-name').innerText = currentProfile.name;
+                switchScreen('reveal');
+                setTimeout(showFullResults, 2500);
+            }
+            
+            function showFullResults() {
+                document.getElementById('result-title').innerText = currentProfile.name;
+                document.getElementById('archetype-subtitle').innerText = currentProfile.archetype;
+                document.getElementById('result-characteristics').innerText = currentProfile.characteristics;
+                document.getElementById('result-analysis-focus').innerText = currentProfile.analysisFocus;
+                document.getElementById('result-biography').innerText = currentProfile.biography;
+                
+                currentResultPage = 1;
+                updateResultPage();
+                switchScreen('results');
+            }
+
+            function updateResultPage() {
+                const totalPages = 3; 
+                for (let i = 1; i <= totalPages; i++) { document.getElementById(`results-page-${i}`).classList.remove('active'); }
+                document.getElementById(`results-page-${currentResultPage}`).classList.add('active');
+                
+                elements.backBtn.style.visibility = (currentResultPage === 1) ? 'hidden' : 'visible';
+                elements.nextBtn.style.visibility = (currentResultPage === totalPages) ? 'hidden' : 'visible';
+                
+                const finalButtonsVisible = currentResultPage === totalPages;
+                elements.restartBtn.style.display = finalButtonsVisible ? 'block' : 'none';
+                elements.nextBtn.style.display = finalButtonsVisible ? 'none' : 'block';
+            }
+
+            elements.maleBtn.addEventListener('click', () => { selectedGender = 'male'; startAnalysis(); });
+            elements.femaleBtn.addEventListener('click', () => { selectedGender = 'female'; startAnalysis(); });
+            elements.recordBtn.addEventListener('click', () => {
+                elements.analysisContent.style.display = 'none';
+                elements.recordingContainer.style.display = 'flex';
+                setTimeout(startReveal, 4000);
+            });
+            elements.nextBtn.addEventListener('click', () => { if (currentResultPage < 3) { currentResultPage++; updateResultPage(); } });
+            elements.backBtn.addEventListener('click', () => { if (currentResultPage > 1) { currentResultPage--; updateResultPage(); } });
+            elements.restartBtn.addEventListener('click', () => switchScreen('welcome'));
+        });
+    </script>
+</body>
+</html>
